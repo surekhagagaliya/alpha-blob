@@ -78,7 +78,9 @@ footer ul li {
     padding-bottom: 15px;
 }
 .card {
-    background-color:lightgray;
+    background-color: lightgray;
+    margin-left: 20%;
+    margin-right: 20%
 }
 .article-meta-details {
     border-top: 1px solid #eaeaea;
@@ -87,4 +89,7 @@ footer ul li {
 .listing {
     list-style: none;
     padding-left: 0;
+}
+.pagination{
+    justify-content: center;
 }
