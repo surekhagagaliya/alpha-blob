@@ -15,7 +15,7 @@ set :linked_files, ['config/database.yml', 'config/credentials.yml.enc', 'config
 set :linked_dirs, %w[log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system]
 set :stage, 'production'
 
-set :ssh_options, forward_agent: true, user: fetch(:user), keys: %w[~/.ssh/id_rsa]
+set :ssh_options,  config: false, forward_agent: true, user: fetch(:user), keys: %w[~/.ssh/id_rsa]
 
 desc "Deploys the current version to the server."
 namespace :deploy do
