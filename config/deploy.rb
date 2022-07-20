@@ -1,84 +1,46 @@
-# Change these
-server '54.202.185.70', port: 22, roles: [:web, :app, :db], primary: true
+# config valid for current version and patch releases of Capistrano
+lock "~> 3.17.0"
 
-set :repo_url,        'git@github.com:surekhagagaliya/alpha-blob.git'
-set :application,     'alpha-blog'
+set :user, 'ubuntu'
+set :application, 'alpha-blog'
+set :deploy_to, '/home/ubuntu/alpha-blog'
+set :repo_url, 'git@github.com:surekhagagaliya/alpha-blob.git'
+set :branch, "master"
+set :pty, true
+set :use_sudo, false
+set :deploy_via, :remote_cache
+set :keep_releases, 2
 
-# If using Digital Ocean's Ruby on Rails Marketplace framework, your username is 'rails'
-set :user,            'ubuntu'
-set :puma_threads,    [4, 16]
-set :puma_workers,    0
+set :linked_files, ['config/database.yml', 'config/credentials.yml.enc', 'config/master.key', 'config/storage.yml', 'config/credentials/production.yml.enc', 'config/credentials/production.key', 'config/unicorn.rb']
+set :linked_dirs, %w[log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system]
+set :stage, 'production'
 
-# Don't change these unless you know what you're doing
-set :pty,             true
-set :use_sudo,        false
-set :stage,           :production
-set :deploy_via,      :remote_cache
-set :deploy_to,       "/home/#{fetch(:user)}/apps/#{fetch(:application)}"
-set :puma_bind,       "unix://#{shared_path}/tmp/sockets/#{fetch(:application)}-puma.sock"
-set :puma_state,      "#{shared_path}/tmp/pids/puma.state"
-set :puma_pid,        "#{shared_path}/tmp/pids/puma.pid"
-set :puma_access_log, "#{release_path}/log/puma.access.log"
-set :puma_error_log,  "#{release_path}/log/puma.error.log"
-set :ssh_options,     { forward_agent: true, user: fetch(:user), keys: %w(~/.ssh/id_rsa) }
-set :puma_preload_app, true
-set :puma_worker_timeout, nil
-set :puma_init_active_record, true  # Change to false when not using ActiveRecord
+set :ssh_options, forward_agent: true, user: fetch(:user), keys: %w[~/.ssh/id_ed25519.pub]
 
-## Defaults:
-# set :scm,           :git
-# set :branch,        :main
-# set :format,        :pretty
-# set :log_level,     :debug
-# set :keep_releases, 5
-
-## Linked Files & Directories (Default None):
-# set :linked_files, %w{config/database.yml}
-# set :linked_dirs,  %w{bin log tmp/pids tmp/cache tmp/sockets vendor/bundle public/system}
-
-namespace :puma do
-  desc 'Create Directories for Puma Pids and Socket'
-  task :make_dirs do
-    on roles(:app) do
-      execute "mkdir #{shared_path}/tmp/sockets -p"
-      execute "mkdir #{shared_path}/tmp/pids -p"
+desc "Deploys the current version to the server."
+namespace :deploy do
+  desc 'Restart application'
+  task :restart do
+    on roles(:app), in: :sequence, wait: 5 do
+      execute :touch, release_path.join('tmp/restart.txt')
     end
+    invoke 'unicorn:stop'
+    sleep(5)
+    invoke 'unicorn:start'
   end
 
-  before 'deploy:starting', 'puma:make_dirs'
+  after :publishing, 'deploy:restart'
+  after :finishing, 'deploy:cleanup'
 end
 
 namespace :deploy do
-  desc "Make sure local git is in sync with remote."
-  task :check_revision do
-    on roles(:app) do
-
-      # Update this to your branch name: master, main, etc. Here it's main
-      unless `git rev-parse HEAD` == `git rev-parse origin/main`
-        puts "WARNING: HEAD is not the same as origin/main"
-        puts "Run `git push` to sync changes."
-        exit
-      end
+  after :restart, :clear_cache do
+    on roles(:web), in: :groups, limit: 3, wait: 10 do
     end
   end
-
-  desc 'Initial Deploy'
-  task :initial do
-    on roles(:app) do
-      before 'deploy:restart', 'puma:start'
-      invoke 'deploy'
-    end
-  end
-
-  desc 'Restart application'
-    task :restart do
-      on roles(:app), in: :sequence, wait: 5 do
-        invoke 'puma:restart'
-      end
-  end
-
-  before :starting,     :check_revision
-  after  :finishing,    :compile_assets
-  after  :finishing,    :cleanup
-  # after  :finishing,    :restart
 end
+
+set :default_env, {
+  PATH: '$HOME/.nvm/versions/node/v16.15.0/bin/:$PATH',
+  NODE_ENVIRONMENT: 'production'
+}
