@@ -84,4 +84,5 @@ production:
   <<: *default
   database: alpha-blog_production
   username: postgres
-  password: <%= ENV['ALPHA-BLOG_DATABASE_PASSWORD'] %>
+  password: postgres
+  # password: <%= ENV['ALPHA-BLOG_DATABASE_PASSWORD'] %>
